@@ -25,7 +25,7 @@ Management suspects that some employees may be using TOR browsers to bypass netw
 
 ### 1. Searched the `DeviceFileEvents` Table
 
-Analysis of the 'DeviceFileEvents' table revealed user 'kolton' downloaded a Tor installer. Subsequent activity included copying numerous Tor-related files to the desktop and creating a file named 'tor-shopping-list.txt' in the same location. The initial search targeted files containing the string 'tor'.
+Analysis of the `DeviceFileEvents` table revealed user `kolton` downloaded a Tor installer. Subsequent activity included copying numerous Tor-related files to the desktop and creating a file named `tor-shopping-list.txt` in the same location. The initial search targeted files containing the string `tor`.
 These events began at: '2025-06-02T17:12:50.2942182Z'
 
 **Query used to locate events:**
@@ -46,24 +46,25 @@ DeviceFileEvents
 
 ### 2. Searched the `DeviceProcessEvents` Table
 
-Searched for any `ProcessCommandLine` that contained the string "tor-browser-windows-x86_64-portable-14.0.1.exe". Based on the logs returned, at `2024-11-08T22:16:47.4484567Z`, an employee on the "threat-hunt-lab" device ran the file `tor-browser-windows-x86_64-portable-14.0.1.exe` from their Downloads folder, using a command that triggered a silent installation.
+Searched the `DeviceProcessEvents` table for any `ProcessCommandLine` that contained the string `tor-browser-windows-x86_64-portable-14.5.3.exe`.. Based on the logs returned, At `2025-06-02T17:14:22.8073816Z`, a user named `kolton` on the device `koltonproject2` launched the Tor Browser from their Downloads folder. The specific file executed was `tor-browser-windows-x86_64-portable-14.5.3.exe`, and it was run with the `/S` command-line argument, likely indicating a silent or unattended extraction/installation process.
+
 
 **Query used to locate event:**
 
 ```kql
 
-DeviceProcessEvents  
-| where DeviceName == "threat-hunt-lab"  
-| where ProcessCommandLine contains "tor-browser-windows-x86_64-portable-14.0.1.exe"  
+DeviceProcessEvents
+| where DeviceName == "koltonproject2"
+| where ProcessCommandLine contains "tor-browser-windows-x86_64-portable-14.5.3.exe"
 | project Timestamp, DeviceName, AccountName, ActionType, FileName, FolderPath, SHA256, ProcessCommandLine
 ```
-<img width="1212" alt="image" src="https://github.com/user-attachments/assets/b07ac4b4-9cb3-4834-8fac-9f5f29709d78">
+![image](https://github.com/user-attachments/assets/84832c51-213c-4882-be62-8ae2531ea7fb)
 
 ---
 
 ### 3. Searched the `DeviceProcessEvents` Table for TOR Browser Execution
 
-Searched for any indication that user "employee" actually opened the TOR browser. There was evidence that they did open it at `2024-11-08T22:17:21.6357935Z`. There were several other instances of `firefox.exe` (TOR) as well as `tor.exe` spawned afterwards.
+User `kolton` launched the Tor browser, as indicated by entries in the `DeviceProcessEvents` table at `2025-06-02T17:15:13.2531223Z`. Following this, multiple instances of `firefox.exe` (associated with Tor) and `tor.exe` were subsequently initiated.
 
 **Query used to locate events:**
 
@@ -74,86 +75,62 @@ DeviceProcessEvents
 | project Timestamp, DeviceName, AccountName, ActionType, FileName, FolderPath, SHA256, ProcessCommandLine  
 | order by Timestamp desc
 ```
-<img width="1212" alt="image" src="https://github.com/user-attachments/assets/b13707ae-8c2d-4081-a381-2b521d3a0d8f">
+![image](https://github.com/user-attachments/assets/d1e940e8-15e7-4400-a0e2-ebba37f30627)
 
 ---
 
 ### 4. Searched the `DeviceNetworkEvents` Table for TOR Network Connections
 
-Searched for any indication the TOR browser was used to establish a connection using any of the known TOR ports. At `2024-11-08T22:18:01.1246358Z`, an employee on the "threat-hunt-lab" device successfully established a connection to the remote IP address `176.198.159.33` on port `9001`. The connection was initiated by the process `tor.exe`, located in the folder `c:\users\employee\desktop\tor browser\browser\torbrowser\tor\tor.exe`. There were a couple of other connections to sites over port `443`.
+An investigation of the `DeviceNetworkEvents` table revealed Tor browser usage for establishing connections via known ports. At, `2025-06-02T17:16:15.0874854Z`, user `kolton` on device `koltonproject2` unsuccessfully connected from `tor.exe` to the remote IP address `31.14.252.98` on port `9001`, but the attempt to connect was made.
 
 **Query used to locate events:**
 
 ```kql
-DeviceNetworkEvents  
-| where DeviceName == "threat-hunt-lab"  
-| where InitiatingProcessAccountName != "system"  
-| where InitiatingProcessFileName in ("tor.exe", "firefox.exe")  
-| where RemotePort in ("9001", "9030", "9040", "9050", "9051", "9150", "80", "443")  
-| project Timestamp, DeviceName, InitiatingProcessAccountName, ActionType, RemoteIP, RemotePort, RemoteUrl, InitiatingProcessFileName, InitiatingProcessFolderPath  
-| order by Timestamp desc
+DeviceNetworkEvents
+| where DeviceName == "koltonproject2"
+| where InitiatingProcessAccountName != "system"
+| where RemotePort in ("9001", "9030", "9040", "9051", "9150")
+| project Timestamp, DeviceName, InitiatingProcessAccountName, ActionType, RemoteIP, RemotePort, RemoteUrl, InitiatingProcessFileName
 ```
-<img width="1212" alt="image" src="https://github.com/user-attachments/assets/87a02b5b-7d12-4f53-9255-f5e750d0e3cb">
+![image](https://github.com/user-attachments/assets/62b4661d-5bb8-48c9-ba8d-8505f91cf1f5)
 
 ---
 
-## Chronological Event Timeline 
+## Timeline of Events:
 
-### 1. File Download - TOR Installer
+-   **Timestamp:** `2025-06-02T17:12:50.2942182Z`
+    -   **Event:** On `koltonproject2`, user `kolton` initiated file activities related to Tor, including downloading a Tor installer, copying numerous Tor-related files to the desktop, and creating a file named `tor-shopping-list.txt`.
+    -   **Action:** File download, copy, and creation detected.
+    -   **File Path:** Multiple Tor-related files in `Downloads` and `Desktop`, including `tor-shopping-list.txt`.
 
-- **Timestamp:** `2024-11-08T22:14:48.6065231Z`
-- **Event:** The user "employee" downloaded a file named `tor-browser-windows-x86_64-portable-14.0.1.exe` to the Downloads folder.
-- **Action:** File download detected.
-- **File Path:** `C:\Users\employee\Downloads\tor-browser-windows-x86_64-portable-14.0.1.exe`
+-   **Timestamp:** `2025-06-02T17:14:22.8073816Z`
+    -   **Event:** On `koltonproject2`, user `kolton` launched the Tor Browser executable `tor-browser-windows-x86_64-portable-14.5.3.exe` from their Downloads folder with the `/S` command-line argument.
+    -   **Action:** Process created (Tor Browser executable launch).
+    -   **File Path:** `C:\Users\kolton\Downloads\tor-browser-windows-x86_64-portable-14.5.3.exe`
 
-### 2. Process Execution - TOR Browser Installation
+-   **Timestamp:** `2025-06-02T17:15:13.2531223Z`
+    -   **Event:** On `koltonproject2`, user `kolton` directly launched the Tor browser, which subsequently initiated multiple associated processes, including `firefox.exe` and `tor.exe`.
+    -   **Action:** Process creation (Tor Browser and associated processes).
+    -   **File Path:** Not applicable (multiple processes initiated: `firefox.exe`, `tor.exe`).
 
-- **Timestamp:** `2024-11-08T22:16:47.4484567Z`
-- **Event:** The user "employee" executed the file `tor-browser-windows-x86_64-portable-14.0.1.exe` in silent mode, initiating a background installation of the TOR Browser.
-- **Action:** Process creation detected.
-- **Command:** `tor-browser-windows-x86_64-portable-14.0.1.exe /S`
-- **File Path:** `C:\Users\employee\Downloads\tor-browser-windows-x86_64-portable-14.0.1.exe`
+-   **Timestamp:** `2025-06-02T17:15:48.0000000Z`
+    -   **Event:** On `koltonproject2`, user `kolton`'s `firefox.exe` successfully established a local connection to `127.0.0.1` on port `9150`.
+    -   **Action:** Network connection succeeded.
+    -   **File Path:** `firefox.exe` (initiating process).
 
-### 3. Process Execution - TOR Browser Launch
+-   **Timestamp:** `2025-06-02T17:16:15.0874854Z`
+    -   **Event:** On `koltonproject2`, user `kolton`'s `tor.exe` attempted an unsuccessful connection to the remote IP address `31.14.252.98` on port `9001`.
+    -   **Action:** Network connection attempted (unsuccessful).
+    -   **File Path:** `tor.exe` (initiating process).
 
-- **Timestamp:** `2024-11-08T22:17:21.6357935Z`
-- **Event:** User "employee" opened the TOR browser. Subsequent processes associated with TOR browser, such as `firefox.exe` and `tor.exe`, were also created, indicating that the browser launched successfully.
-- **Action:** Process creation of TOR browser-related executables detected.
-- **File Path:** `C:\Users\employee\Desktop\Tor Browser\Browser\TorBrowser\Tor\tor.exe`
+## Summary of Events:
 
-### 4. Network Connection - TOR Network
-
-- **Timestamp:** `2024-11-08T22:18:01.1246358Z`
-- **Event:** A network connection to IP `176.198.159.33` on port `9001` by user "employee" was established using `tor.exe`, confirming TOR browser network activity.
-- **Action:** Connection success.
-- **Process:** `tor.exe`
-- **File Path:** `c:\users\employee\desktop\tor browser\browser\torbrowser\tor\tor.exe`
-
-### 5. Additional Network Connections - TOR Browser Activity
-
-- **Timestamps:**
-  - `2024-11-08T22:18:08Z` - Connected to `194.164.169.85` on port `443`.
-  - `2024-11-08T22:18:16Z` - Local connection to `127.0.0.1` on port `9150`.
-- **Event:** Additional TOR network connections were established, indicating ongoing activity by user "employee" through the TOR browser.
-- **Action:** Multiple successful connections detected.
-
-### 6. File Creation - TOR Shopping List
-
-- **Timestamp:** `2024-11-08T22:27:19.7259964Z`
-- **Event:** The user "employee" created a file named `tor-shopping-list.txt` on the desktop, potentially indicating a list or notes related to their TOR browser activities.
-- **Action:** File creation detected.
-- **File Path:** `C:\Users\employee\Desktop\tor-shopping-list.txt`
-
----
-
-## Summary
-
-The user "employee" on the "threat-hunt-lab" device initiated and completed the installation of the TOR browser. They proceeded to launch the browser, establish connections within the TOR network, and created various files related to TOR on their desktop, including a file named `tor-shopping-list.txt`. This sequence of activities indicates that the user actively installed, configured, and used the TOR browser, likely for anonymous browsing purposes, with possible documentation in the form of the "shopping list" file.
+On June 2, 2025, user `kolton` on the device `koltonproject2` engaged in activities related to the Tor Browser. This began with the download and file-related actions of a Tor installer, followed by the execution of the Tor Browser executable. Subsequently, the Tor browser and its associated processes (`firefox.exe` and `tor.exe`) were launched. A successful local connection was observed from `firefox.exe` to `127.0.0.1` on port `9150`, indicating the Tor browser's local proxy was active. Finally, `tor.exe` attempted an external connection to `31.14.252.98` on port `9001`, which was reported as unsuccessful.
 
 ---
 
 ## Response Taken
 
-TOR usage was confirmed on the endpoint `threat-hunt-lab` by the user `employee`. The device was isolated, and the user's direct manager was notified.
+TOR usage was confirmed on endpoint `koltonproject2` by the user `Kolton`. The device was isolated and the user's direct manager was notified.
 
 ---
